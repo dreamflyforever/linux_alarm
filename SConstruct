@@ -8,6 +8,6 @@ env.Program('alarm',
 			'-fpack-struct',
 			'-fno-strict-aliasing',
 			'-Wno-unused-variable',
-			'-Os',
+			'-O0',
 			'-Wall'],
 		CC = 'clang')
