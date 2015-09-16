@@ -12,6 +12,8 @@ struct alarm {
 	U8 id;
 	/*bitmap for set which day*/
 	U8 wflag;
+	/*for insert which queue*/
+	U8 week;
 	U8 hour;
 	U8 minute;
 	U8 second;
