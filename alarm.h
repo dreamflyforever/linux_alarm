@@ -42,6 +42,6 @@ struct alarm *get_new_alarm(void);
 
 /*system lib*/
 struct alarm *search_alarm(char id, char week);
-int compare(char c, struct fit in[5], OUT char fout[5], OUT char *num);
-int min(IN char in[5], OUT char out[5], char *num);
+int compare(char c, struct fit in[7], OUT char fout[7], OUT char *num);
+int min(IN char in[7], OUT char out[7], char *num);
 struct alarm *_get_new_alarm(int start, int end, struct alarm *now);

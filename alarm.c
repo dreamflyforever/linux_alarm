@@ -3,6 +3,7 @@
 #include <alarm.h>
 #include <stdlib.h>
 #include<time.h>
+#include <unistd.h>
 
 struct alarm tick_queue[7];
 
@@ -167,6 +168,11 @@ U32 addtimer(U8 id,
 struct alarm *get_new_alarm(void)
 {
 	struct alarm *now = system_timer_get();
+#if 1	
+	printf("week: %d, hour: %d, minute: %d, second: %d\n",
+		now->week, now->hour, now->minute,
+		now->second);
+#endif
 	struct alarm *tmp = _get_new_alarm(now->week, 7, now);
 	if (tmp == NULL) {
 		tmp = _get_new_alarm(0, now->week, now);
@@ -174,11 +180,11 @@ struct alarm *get_new_alarm(void)
 	return tmp;
 }
 
-int compare(char c, struct fit in[5], OUT char fout[5], OUT char *num)
+int compare(char c, struct fit in[7], OUT char fout[7], OUT char *num)
 {
 	int i;
 	int j = 0;
-	char copy[5] = {100, 100, 100, 100, 100};
+	char copy[7] = {100, 100, 100, 100, 100, 100, 100};
 	*num = 0;
 
 	for (i = 0; i < 5; i++) {
@@ -192,7 +198,7 @@ int compare(char c, struct fit in[5], OUT char fout[5], OUT char *num)
 	if (!j)
 		return FAIL;
 
-	char mout[5] = {-1, -1, -1, -1, -1};
+	char mout[7] = {-1, -1, -1, -1, -1, -1, -1};
 	i = min(copy, mout, num);
 	if (i == MANY_CASES) {
 		for (i = 0; i < *num; i++) {
@@ -204,14 +210,14 @@ int compare(char c, struct fit in[5], OUT char fout[5], OUT char *num)
 	return in[i].id;
 }
 
-int min(IN char in[5], OUT char out[5], char *num)
+int min(IN char in[7], OUT char out[7], char *num)
 {
 	char m = in[0];
 	char x;
 	int i;
 	int j = 0;
 	out[0] = in[0];
-	for (i = 1; i < 5; i++) {
+	for (i = 1; i < 7; i++) {
 		if (in[i] <= m) {
 				out[i] = in[i];
 				m = in[i];
@@ -219,7 +225,7 @@ int min(IN char in[5], OUT char out[5], char *num)
 		}
 	}
 
-	for (i = 0; i < 5; i++) {
+	for (i = 0; i < 7; i++) {
 		if ((m == out[i]) && (m != 100)) {
 			out[j] = i;
 			j++;
@@ -258,7 +264,7 @@ struct alarm *system_timer_get(void)
 
 struct alarm *_get_new_alarm(int start, int end, struct alarm *now)
 {
-	struct fit figure[5] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}};
+	struct fit figure[7] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}};
 	int i;
 	struct alarm *tick_tmp;
 	for (i = start; i < end; i++) {
@@ -275,7 +281,7 @@ struct alarm *_get_new_alarm(int start, int end, struct alarm *now)
 			}
 		}
 		char num;
-		char out[5] = {-1, -1, -1, -1, -1};
+		char out[7] = {-1, -1, -1, -1, -1, -1, -1};
 		int id = compare(now->hour, figure, out, &num);
 		if (id == MANY_CASES) {
 			struct alarm *tmp[num];
