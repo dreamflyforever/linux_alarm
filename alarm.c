@@ -40,11 +40,7 @@ struct alarm *search_alarm(char id, char week)
 		while (!is_list_last(tmp)) {
 			tick_tmp = list_entry(tmp->next, struct alarm, list);
 			tmp = tmp->next;
-#if 0
-			printf("id: %d, week: %d, hour: %d, minute: %d, second: %d, repeat: %d\n",
-					tick_tmp->id, tick_tmp->wflag, tick_tmp->hour, tick_tmp->minute,
-					tick_tmp->second, tick_tmp->rflag);
-#endif
+
 			if (id == tick_tmp->id) {
 				tick_tmp->week = week;
 				return tick_tmp;
@@ -60,9 +56,12 @@ int main()
 	tick_queue_init();
 	addtimer(0, 0, 3, 6, 1, 1);
 	addtimer(1, 0, 3, 2, 0, 1);
-	addtimer(2, 3, 3, 9, 10, 1);
+	addtimer(2, 2, 3, 9, 10, 1);
 	addtimer(3, 3, 1, 1, 20, 1);
-	addtimer(4, 3, 20, 1, 23, 1);
+	addtimer(4, 4, 20, 1, 23, 1);
+	addtimer(5, 5, 20, 1, 23, 1);
+	addtimer(6, 6, 20, 1, 23, 1);
+	addtimer(7, 3, 20, 1, 23, 1);
 
 	struct alarm *tick_tmp = get_new_alarm();
 	if (tick_tmp == NULL) {
@@ -70,7 +69,7 @@ int main()
 		return 0;
 	}
 
-	printf("id: %d, week: %d, hour: %d, minute: %d, second: %d\n",
+	printf("search result ====> id: %d, week: %d, hour: %d, minute: %d, second: %d\n",
 		tick_tmp->id, tick_tmp->week, tick_tmp->hour, tick_tmp->minute,
 		tick_tmp->second);
 
@@ -137,88 +136,11 @@ U32 addtimer(U8 id,
 struct alarm *get_new_alarm(void)
 {
 	struct alarm *now = system_timer_get();
-	int i;
-	struct fit figure[5] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}};
-	
-	struct alarm *tick_tmp;
-	for (i = now->week; i < 7; i++) {
-		int j = 0;
-		LIST *tmp = &tick_queue[i].list;
-		while (!is_list_last(tmp)) {
-			tick_tmp = list_entry(tmp->next, struct alarm, list);
-			tmp = tmp->next;
-
-			if (tick_tmp->run & (1 << i)) {
-				figure[j].id = tick_tmp->id;
-				figure[j].num = tick_tmp->hour + (i - now->week) * 24;
-				j++;
-			}
-		}
-		char num;
-		char out[5] = {-1, -1, -1, -1, -1};
-		int id = compare(now->hour, figure, out, &num);
-		if (id == MANY_CASES) {
-			struct alarm *tmp[num];
-			int k;
-			for (k = 0; k < num; k++) {
-				tmp[k] = search_alarm(out[k], i);
-				figure[k].id = out[k];
-				figure[k].num = tmp[k]->minute + 60;
-				printf("id: %d ==>minute: %d, tmp[k]->minute: %d....", out[k], figure[k].num, tmp[k]->minute);
-			}
-			id = compare(now->minute, figure, out, &num);
-			printf("=====>id: %d\n", id);
-			return  search_alarm(id, i);
-
-		} else if (id == FAIL) {
-
-		} else {
-			printf("===============>id: %d <================\n", id);
-			return search_alarm(id, i);
-		}
-
-	
+	struct alarm *tmp = _get_new_alarm(now->week, 7, now);
+	if (tmp == NULL) {
+		tmp = _get_new_alarm(0, now->week, now);
 	}
-
-	for (i = 0; i < now->week; i++) {
-		int j = 0;
-		LIST *tmp = &tick_queue[i].list;
-		while (!is_list_last(tmp)) {
-			tick_tmp = list_entry(tmp->next, struct alarm, list);
-			tmp = tmp->next;
-
-			if (tick_tmp->run & (1 << i)) {
-				figure[j].id = tick_tmp->id;
-				figure[j].num = tick_tmp->hour + (7 - now->week + i) * 24;
-				j++;
-			}
-		}
-		char num;
-		char out[5] = {-1, -1, -1, -1, -1};
-		int id = compare(now->hour, figure, out, &num);
-		if (id == MANY_CASES) {
-			struct alarm *tmp[num];			
-			int k;
-			for (k = 0; k < num; k++) {
-				tmp[k] = search_alarm(out[k], i);
-				figure[k].id = out[k];
-				figure[k].num = tmp[k]->minute + 60;
-				printf("id: %d ==>minute: %d, tmp[k]->minute: %d....", out[k], figure[k].num, tmp[k]->minute);
-
-			}
-			id = compare(now->minute, figure, out, &num);
-			printf("=====>id: %d\n", id);
-			return  search_alarm(id, i);
-		} else if (id == FAIL) {
-
-		} else {
-			printf("===============>id: %d <================\n", id);
-			return search_alarm(id, i);
-		}
-	}
-
-	/*no alarm*/
-	return NULL;
+	return tmp;
 }
 
 int compare(char c, struct fit in[5], OUT char fout[5], OUT char *num)
@@ -240,10 +162,6 @@ int compare(char c, struct fit in[5], OUT char fout[5], OUT char *num)
 		return FAIL;
 
 	char mout[5] = {-1, -1, -1, -1, -1};
-	for (i = 0; i < 5; i++) {
-		printf("%d  ", copy[i]);
-	}
-	printf("\n");
 	i = min(copy, mout, num);
 	if (i == MANY_CASES) {
 		for (i = 0; i < *num; i++) {
@@ -282,7 +200,6 @@ int min(IN char in[5], OUT char out[5], char *num)
 		return MANY_CASES;
 	}
 
-	printf("min: %d, position: [%d]\n", m, x);
 	return x;
 }
 
@@ -292,12 +209,13 @@ struct alarm *system_timer_get(void)
 	struct tm *timenow;
 	time(&now);
 	timenow = localtime(&now);
-	printf("Local   time   is   %s\n", asctime(timenow));
+	printf("Local   time   is   %s", asctime(timenow));
 	localtime_r(&now, timenow);
+#if 0
 	printf("year: %d, mon: %d, mday: %d, week: %d, hour: %d, min: %d, sec: %d\n",
 		timenow->tm_year, timenow->tm_mon, timenow->tm_mday, timenow->tm_wday,
 		timenow->tm_hour, timenow->tm_min, timenow->tm_sec);
-
+#endif 
 	struct alarm *tmp = malloc(sizeof(struct alarm));
 	tmp->week = timenow->tm_wday;
 	tmp->hour = timenow->tm_hour;
@@ -305,4 +223,47 @@ struct alarm *system_timer_get(void)
 	tmp->second = timenow->tm_sec;
 
 	return tmp;
+}
+
+struct alarm *_get_new_alarm(int start, int end, struct alarm *now)
+{
+	struct fit figure[5] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}};
+	int i;
+	struct alarm *tick_tmp;
+	for (i = start; i < end; i++) {
+		int j = 0;
+		LIST *tmp = &tick_queue[i].list;
+		while (!is_list_last(tmp)) {
+			tick_tmp = list_entry(tmp->next, struct alarm, list);
+			tmp = tmp->next;
+
+			if (tick_tmp->run & (1 << i)) {
+				figure[j].id = tick_tmp->id;
+				figure[j].num = tick_tmp->hour + 24;
+				j++;
+			}
+		}
+		char num;
+		char out[5] = {-1, -1, -1, -1, -1};
+		int id = compare(now->hour, figure, out, &num);
+		if (id == MANY_CASES) {
+			struct alarm *tmp[num];
+			int k;
+			for (k = 0; k < num; k++) {
+				tmp[k] = search_alarm(out[k], i);
+				figure[k].id = out[k];
+				figure[k].num = tmp[k]->minute + 60;
+			}
+			id = compare(now->minute, figure, out, &num);
+			return  search_alarm(id, i);
+
+		} else if (id == FAIL) {
+
+		} else {
+			printf("===============>id: %d <================\n", id);
+			return search_alarm(id, i);
+		}
+	}
+
+	return NULL;
 }
