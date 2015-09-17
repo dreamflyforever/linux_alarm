@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include<time.h>
 
-struct fit figure[5] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}};
 struct alarm tick_queue[7];
 
 int tick_queue_init(void)
@@ -32,7 +31,7 @@ int tick_queue_delete(struct alarm *tick)
 }
 
 /*traverse the alarm list to search alarm id*/
-struct alarm *search_alarm(char id)
+struct alarm *search_alarm(char id, char week)
 {
 	int i;
 	struct alarm *tick_tmp;
@@ -46,31 +45,24 @@ struct alarm *search_alarm(char id)
 					tick_tmp->id, tick_tmp->wflag, tick_tmp->hour, tick_tmp->minute,
 					tick_tmp->second, tick_tmp->rflag);
 #endif
-			if (id == tick_tmp->id)
+			if (id == tick_tmp->id) {
+				tick_tmp->week = week;
 				return tick_tmp;
+			}
 		}
 	}
 
 	return NULL;
 }
 
-void week_init()
-{
-	int i;
-	for (i = 0; i < 7; i++) {
-		_week[week_bitmap[i]] = i;
-	}
-}
-
 int main()
 {
 	tick_queue_init();
-	week_init();
-	addtimer(0, 5, 3, 1, 1, 1);
-	addtimer(1, 0, 2, 1, 0, 1);
-	addtimer(2, 2, 4, 1, 10, 1);
+	addtimer(0, 0, 3, 6, 1, 1);
+	addtimer(1, 0, 3, 2, 0, 1);
+	addtimer(2, 3, 3, 9, 10, 1);
 	addtimer(3, 3, 1, 1, 20, 1);
-	addtimer(4, 4, 6, 1, 23, 1);
+	addtimer(4, 3, 20, 1, 23, 1);
 
 	struct alarm *tick_tmp = get_new_alarm();
 	if (tick_tmp == NULL) {
@@ -79,7 +71,7 @@ int main()
 	}
 
 	printf("id: %d, week: %d, hour: %d, minute: %d, second: %d\n",
-		tick_tmp->id, _week[tick_tmp->wflag], tick_tmp->hour, tick_tmp->minute,
+		tick_tmp->id, tick_tmp->week, tick_tmp->hour, tick_tmp->minute,
 		tick_tmp->second);
 
 	return 0;
@@ -145,7 +137,8 @@ U32 addtimer(U8 id,
 struct alarm *get_new_alarm(void)
 {
 	struct alarm *now = system_timer_get();
-	int i = 0;
+	int i;
+	struct fit figure[5] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}};
 	
 	struct alarm *tick_tmp;
 	for (i = now->week; i < 7; i++) {
@@ -161,11 +154,30 @@ struct alarm *get_new_alarm(void)
 				j++;
 			}
 		}
-		int id = compare(now->hour, figure);
-		if (id != -1) {
+		char num;
+		char out[5] = {-1, -1, -1, -1, -1};
+		int id = compare(now->hour, figure, out, &num);
+		if (id == MANY_CASES) {
+			struct alarm *tmp[num];
+			int k;
+			for (k = 0; k < num; k++) {
+				tmp[k] = search_alarm(out[k], i);
+				figure[k].id = out[k];
+				figure[k].num = tmp[k]->minute + 60;
+				printf("id: %d ==>minute: %d, tmp[k]->minute: %d....", out[k], figure[k].num, tmp[k]->minute);
+			}
+			id = compare(now->minute, figure, out, &num);
+			printf("=====>id: %d\n", id);
+			return  search_alarm(id, i);
+
+		} else if (id == FAIL) {
+
+		} else {
 			printf("===============>id: %d <================\n", id);
-			return search_alarm(id);
+			return search_alarm(id, i);
 		}
+
+	
 	}
 
 	for (i = 0; i < now->week; i++) {
@@ -181,10 +193,27 @@ struct alarm *get_new_alarm(void)
 				j++;
 			}
 		}
-		int id = compare(now->hour, figure);
-		if (id != -1) {
+		char num;
+		char out[5] = {-1, -1, -1, -1, -1};
+		int id = compare(now->hour, figure, out, &num);
+		if (id == MANY_CASES) {
+			struct alarm *tmp[num];			
+			int k;
+			for (k = 0; k < num; k++) {
+				tmp[k] = search_alarm(out[k], i);
+				figure[k].id = out[k];
+				figure[k].num = tmp[k]->minute + 60;
+				printf("id: %d ==>minute: %d, tmp[k]->minute: %d....", out[k], figure[k].num, tmp[k]->minute);
+
+			}
+			id = compare(now->minute, figure, out, &num);
+			printf("=====>id: %d\n", id);
+			return  search_alarm(id, i);
+		} else if (id == FAIL) {
+
+		} else {
 			printf("===============>id: %d <================\n", id);
-			return search_alarm(id);
+			return search_alarm(id, i);
 		}
 	}
 
@@ -192,35 +221,65 @@ struct alarm *get_new_alarm(void)
 	return NULL;
 }
 
-int compare(char c, struct fit n[5])
+int compare(char c, struct fit in[5], OUT char fout[5], OUT char *num)
 {
 	int i;
 	int j = 0;
 	char copy[5] = {100, 100, 100, 100, 100};
+	*num = 0;
+
 	for (i = 0; i < 5; i++) {
-		if ((n[i].num - c) >= 0) {
-			copy[i] = n[i].num - c;
+		if ((in[i].num - c) >= 0) {
+			copy[i] = in[i].num - c;
 			j++;
+		} else {
+			/*no alarm in this queue*/
 		}
 	}
 	if (!j)
-		return -1;
+		return FAIL;
 
-	i = min(copy);
+	char mout[5] = {-1, -1, -1, -1, -1};
+	for (i = 0; i < 5; i++) {
+		printf("%d  ", copy[i]);
+	}
+	printf("\n");
+	i = min(copy, mout, num);
+	if (i == MANY_CASES) {
+		for (i = 0; i < *num; i++) {
+			fout[i] = in[(int)mout[i]].id;
+		}
+		return MANY_CASES;
+	}
 
-	return n[i].id;
+	return in[i].id;
 }
 
-int min(char a[5])
+int min(IN char in[5], OUT char out[5], char *num)
 {
-	char m = a[0];
+	char m = in[0];
 	char x;
 	int i;
-	for (i = 0; i < 5; i++) {
-		if (a[i] < m) {
-			m = a[i];
-			x = i;
+	int j = 0;
+	out[0] = in[0];
+	for (i = 1; i < 5; i++) {
+		if (in[i] <= m) {
+				out[i] = in[i];
+				m = in[i];
+				x = i;
 		}
+	}
+
+	for (i = 0; i < 5; i++) {
+		if ((m == out[i]) && (m != 100)) {
+			out[j] = i;
+			j++;
+		}
+	}
+
+	if (j > 1) {
+		*num = j;
+		return MANY_CASES;
 	}
 
 	printf("min: %d, position: [%d]\n", m, x);

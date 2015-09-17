@@ -1,6 +1,7 @@
 enum {
 	SUCCESS = 0,
-	FAIL,
+	FAIL = -1,
+	MANY_CASES = 100,
 	EXIST
 };
 
@@ -36,8 +37,8 @@ struct alarm *system_timer_get(void);
 struct alarm *get_new_alarm(void);
 
 /*system lib*/
-int compare(char c, struct fit n[5]);
-int min(char a[5]);
-struct alarm *search_alarm(char id);
-int week_bitmap[] = {0, 1<<1, 1<<2, 1<<3, 1<<4, 1<<5, 1<<6};
-char _week[1<<6];
+#define OUT
+#define IN
+struct alarm *search_alarm(char id, char week);
+int compare(char c, struct fit in[5], OUT char fout[5], OUT char *num);
+int min(IN char in[5], OUT char out[5], char *num);
