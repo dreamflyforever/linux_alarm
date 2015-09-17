@@ -30,6 +30,35 @@ int tick_queue_delete(struct alarm *tick)
 	return 0;
 }
 
+/*XXX: no test*/
+U32 rmtimer(U8 id)
+{
+	struct alarm *tmp = search_alarm(id, 0);
+	if (tmp == NULL)
+		return 0;
+
+	tick_queue_delete(tmp);
+
+	return 0;
+}
+
+struct alarm *readtimer(U8 id)
+{
+	return search_alarm(id, 100);
+}
+
+/*XXX: no test*/
+U32 set_repeat(U8 id, U8 week, U8 repeat)
+{
+	struct alarm *tmp = search_alarm(id, 100);
+	if (tmp == NULL)
+		return FAIL;
+	tmp->rflag |= (1 << week);
+	tmp->run |= (1 << week);
+
+	return 0;
+}
+
 /*traverse the alarm list to search alarm id*/
 struct alarm *search_alarm(char id, char week)
 {
@@ -43,6 +72,8 @@ struct alarm *search_alarm(char id, char week)
 
 			if (id == tick_tmp->id) {
 				tick_tmp->week = week;
+				if (!(tick_tmp->rflag & (1 << tick_tmp->week)))
+					tick_tmp->run &=  (~(1 << tick_tmp->week));
 				return tick_tmp;
 			}
 		}

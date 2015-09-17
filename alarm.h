@@ -34,7 +34,7 @@ struct alarm {
 U32 addtimer(U8 id, U8 week, U8 hour, U8 minute, U8 second, bool repeat);
 U32 rmtimer(U8 id);
 U32 set_repeat(U8 id, U8 week, U8 repeat);
-struct alarm readtimer(U8 id);
+struct alarm *readtimer(U8 id);
 struct alarm *system_timer_get(void);
 
 /*return latest alarm to user*/
