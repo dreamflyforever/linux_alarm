@@ -2,6 +2,7 @@
 #include <list.h>
 #include <alarm.h>
 #include <stdlib.h>
+#include<time.h>
 
 struct fit figure[5] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}};
 struct alarm tick_queue[7];
@@ -125,14 +126,17 @@ U32 addtimer(U8 id,
 	/*bitmap for which day*/
 	node->wflag |= (1 << week);
 	node->week = week;
+	node->hour = hour;
 	node->minute = minute;
 	node->second = second;
-	node->hour = hour;
 
 	node->run |= (1<<week);
 	if (repeat) {
 		node->rflag |= (1 << week);
 	}
+	printf("id: %d, week: %d, hour: %d, minute: %d, second: %d\n",
+		node->id, node->week, node->hour, node->minute,
+		node->second);
 
 	tick_queue_insert(node);
 	return SUCCESS;
@@ -153,7 +157,7 @@ struct alarm *get_new_alarm(void)
 
 			if (tick_tmp->run & (1 << i)) {
 				figure[j].id = tick_tmp->id;
-				figure[j].num = tick_tmp->hour;
+				figure[j].num = tick_tmp->hour + (i - now->week) * 24;
 				j++;
 			}
 		}
@@ -162,8 +166,28 @@ struct alarm *get_new_alarm(void)
 			printf("===============>id: %d <================\n", id);
 			return search_alarm(id);
 		}
-
 	}
+
+	for (i = 0; i < now->week; i++) {
+		int j = 0;
+		LIST *tmp = &tick_queue[i].list;
+		while (!is_list_last(tmp)) {
+			tick_tmp = list_entry(tmp->next, struct alarm, list);
+			tmp = tmp->next;
+
+			if (tick_tmp->run & (1 << i)) {
+				figure[j].id = tick_tmp->id;
+				figure[j].num = tick_tmp->hour + (7 - now->week + i) * 24;
+				j++;
+			}
+		}
+		int id = compare(now->hour, figure);
+		if (id != -1) {
+			printf("===============>id: %d <================\n", id);
+			return search_alarm(id);
+		}
+	}
+
 	/*no alarm*/
 	return NULL;
 }
@@ -199,17 +223,27 @@ int min(char a[5])
 		}
 	}
 
-	printf("最小的数是%d,他在a[%d]位置\n", m, x);
+	printf("min: %d, position: [%d]\n", m, x);
 	return x;
 }
 
 struct alarm *system_timer_get(void)
 {
+	time_t now;
+	struct tm *timenow;
+	time(&now);
+	timenow = localtime(&now);
+	printf("Local   time   is   %s\n", asctime(timenow));
+	localtime_r(&now, timenow);
+	printf("year: %d, mon: %d, mday: %d, week: %d, hour: %d, min: %d, sec: %d\n",
+		timenow->tm_year, timenow->tm_mon, timenow->tm_mday, timenow->tm_wday,
+		timenow->tm_hour, timenow->tm_min, timenow->tm_sec);
+
 	struct alarm *tmp = malloc(sizeof(struct alarm));
-	tmp->week = 1;
-	tmp->hour = 1;
-	tmp->minute = 1;
-	tmp->second = 1;
+	tmp->week = timenow->tm_wday;
+	tmp->hour = timenow->tm_hour;
+	tmp->minute = timenow->tm_min;
+	tmp->second = timenow->tm_sec;
 
 	return tmp;
 }
