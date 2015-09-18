@@ -1,3 +1,8 @@
+#ifndef _ALARM_H_
+#define _ALARM_H_
+
+#include <time.h>
+
 #define OUT
 #define IN
 
@@ -28,6 +33,7 @@ struct alarm {
 	U8 minute;
 	U8 second;
 	U8 enable;
+	ULONG timestamp;
 };
 
 /*user api*/
@@ -43,8 +49,11 @@ U32 alarm_enable(U8);
 struct alarm *get_new_alarm(void);
 
 /*system lib*/
-struct alarm *system_time_get(void);
+struct alarm *system_time_get(OUT struct tm *timenow);
 struct alarm *alarm_search(char id, char week);
 int compare(char c, struct fit in[7], OUT char fout[7], OUT char *num);
 int min(IN char in[7], OUT char out[7], char *num);
 struct alarm *_get_new_alarm(int start, int end, struct alarm *now);
+void print(U8 week_queue);
+
+#endif
