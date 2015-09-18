@@ -24,42 +24,4 @@ void list_delete(LIST *node);
 bool is_list_last(LIST *node);
 void list_insert_behind(LIST *head, LIST *node);
 
-/*
- * Test double list function
- * */
-#if 0 
-typedef struct TEST{
-	LIST task_list;
-	int num;
-
-}TEST;
-
-TEST a;
-TEST b;
-TEST c;
-
-void main()
-{
-	a.num = 10;
-	b.num = 20;
-	c.num = 30;
-
-	printf("%0x\n", &a.task_list);
-	printf("%0x\n", &b.task_list);
-	printf("%0x\n", &c.task_list);
-	list_init(&a.task_list);
-	list_insert(&a.task_list, &b.task_list);
-	list_insert_spec(&a.task_list, &c.task_list);
-	LIST *tmp = &a.task_list;
-	TEST  *d;
-	while (!is_list_last(tmp)) {
-		d = list_entry(tmp, TEST, task_list);
-		tmp = tmp->next;
-		printf("%d\n", d->num);   
-	} 
-	d = list_entry(tmp, TEST, task_list);
-	printf("%d\n", d->num);
-}
-#endif
-
 #endif
