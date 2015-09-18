@@ -27,7 +27,7 @@ struct alarm {
 	U8 hour;
 	U8 minute;
 	U8 second;
-	U8 run;
+	U8 enable;
 };
 
 /*user api*/
