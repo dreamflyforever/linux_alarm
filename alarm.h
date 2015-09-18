@@ -31,17 +31,20 @@ struct alarm {
 };
 
 /*user api*/
-U32 addtimer(U8 id, U8 week, U8 hour, U8 minute, U8 second, bool repeat);
-U32 rmtimer(U8 id);
-U32 set_repeat(U8 id, U8 week, U8 repeat);
-struct alarm *readtimer(U8 id);
-struct alarm *system_timer_get(void);
+struct alarm *alarm_read(U8 id);
+U32 alarm_add(U8 id, U8 week, U8 hour, U8 minute, U8 second, bool repeat);
+U32 alarm_delete(U8 id);
+U32 alarm_set_repeat(U8 id, U8 week, U8 repeat);
+U32 alarm_reset(U8 id);
+U32 alarm_disable(U8 id);
+U32 alarm_enable(U8);
 
 /*return latest alarm to user*/
 struct alarm *get_new_alarm(void);
 
 /*system lib*/
-struct alarm *search_alarm(char id, char week);
+struct alarm *system_time_get(void);
+struct alarm *alarm_search(char id, char week);
 int compare(char c, struct fit in[7], OUT char fout[7], OUT char *num);
 int min(IN char in[7], OUT char out[7], char *num);
 struct alarm *_get_new_alarm(int start, int end, struct alarm *now);

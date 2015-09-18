@@ -32,9 +32,9 @@ int tick_queue_delete(struct alarm *tick)
 }
 
 /*XXX: no test*/
-U32 rmtimer(U8 id)
+U32 alarm_delete(U8 id)
 {
-	struct alarm *tmp = search_alarm(id, 0);
+	struct alarm *tmp = alarm_search(id, 0);
 	if (tmp == NULL)
 		return 0;
 
@@ -43,15 +43,15 @@ U32 rmtimer(U8 id)
 	return 0;
 }
 
-struct alarm *readtimer(U8 id)
+struct alarm *alarm_read(U8 id)
 {
-	return search_alarm(id, 100);
+	return alarm_search(id, 100);
 }
 
 /*XXX: no test*/
-U32 set_repeat(U8 id, U8 week, U8 repeat)
+U32 alarm_set_repeat(U8 id, U8 week, U8 repeat)
 {
-	struct alarm *tmp = search_alarm(id, 100);
+	struct alarm *tmp = alarm_search(id, 100);
 	if (tmp == NULL)
 		return FAIL;
 	tmp->rflag |= (1 << week);
@@ -61,7 +61,7 @@ U32 set_repeat(U8 id, U8 week, U8 repeat)
 }
 
 /*traverse the alarm list to search alarm id*/
-struct alarm *search_alarm(char id, char week)
+struct alarm *alarm_search(char id, char week)
 {
 	int i;
 	struct alarm *tick_tmp;
@@ -85,15 +85,18 @@ struct alarm *search_alarm(char id, char week)
 
 int main()
 {
+	int ret;
 	tick_queue_init();
-	addtimer(0, 0, 3, 6, 1, 1);
-	addtimer(1, 0, 3, 2, 0, 1);
-	addtimer(2, 2, 3, 9, 10, 1);
-	addtimer(3, 3, 1, 1, 20, 1);
-	addtimer(4, 4, 20, 1, 23, 1);
-	addtimer(5, 5, 20, 1, 23, 1);
-	addtimer(6, 6, 20, 1, 23, 1);
-	addtimer(7, 3, 20, 1, 23, 1);
+	ret = alarm_add(0, 5, 3, 6, 1, 1);
+	if (ret == EXIST)
+		printf("alarm EXIST\n");
+
+	alarm_add(1, 5, 3, 2, 0, 1);
+	alarm_add(2, 5, 3, 9, 10, 1);
+	alarm_add(3, 5, 1, 1, 20, 1);
+	alarm_add(4, 5, 20, 1, 23, 1);
+	alarm_add(5, 5, 19, 1, 23, 1);
+	alarm_add(6, 5, 20, 1, 23, 1);
 
 	struct alarm *tick_tmp = get_new_alarm();
 	if (tick_tmp == NULL) {
@@ -108,7 +111,8 @@ int main()
 	return 0;
 }
 
-U32 addtimer(U8 id,
+U32
+alarm_add(U8 id,
 		U8 week,
 		U8 hour,
 		U8 minute,
@@ -167,7 +171,7 @@ U32 addtimer(U8 id,
 
 struct alarm *get_new_alarm(void)
 {
-	struct alarm *now = system_timer_get();
+	struct alarm *now = system_time_get();
 #if 1	
 	printf("week: %d, hour: %d, minute: %d, second: %d\n",
 		now->week, now->hour, now->minute,
@@ -240,7 +244,7 @@ int min(IN char in[7], OUT char out[7], char *num)
 	return x;
 }
 
-struct alarm *system_timer_get(void)
+struct alarm *system_time_get(void)
 {
 	time_t now;
 	struct tm *timenow;
@@ -287,18 +291,18 @@ struct alarm *_get_new_alarm(int start, int end, struct alarm *now)
 			struct alarm *tmp[num];
 			int k;
 			for (k = 0; k < num; k++) {
-				tmp[k] = search_alarm(out[k], i);
+				tmp[k] = alarm_search(out[k], i);
 				figure[k].id = out[k];
 				figure[k].num = tmp[k]->minute + 60;
 			}
 			id = compare(now->minute, figure, out, &num);
-			return  search_alarm(id, i);
+			return  alarm_search(id, i);
 
 		} else if (id == FAIL) {
 
 		} else {
 			printf("===============>id: %d <================\n", id);
-			return search_alarm(id, i);
+			return alarm_search(id, i);
 		}
 	}
 
