@@ -3,6 +3,7 @@
 #include <alarm.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 struct alarm tick_queue[7];
 
@@ -180,38 +181,47 @@ alarm_add(U8 id,
 
 struct alarm *get_new_alarm(void)
 {
-	struct tm *when = (struct tm *)malloc(sizeof(struct tm));
-	struct alarm *now = system_time_get(when);
+	struct tm *now = system_time_get();
 #if 0
 	printf("week: %d, hour: %d, minute: %d, second: %d\n",
-		now->week, now->hour, now->minute,
-		now->second);
+		now->tm_mday, now->tm_hour, now->tm_min,
+		now->tm_sec);
 #endif
-	struct alarm *tmp = _get_new_alarm(now->week, 7, now);
+	struct alarm *tmp = _get_new_alarm(now->tm_wday, 7, now);
 
 	if (tmp == NULL) {
 
-		tmp = _get_new_alarm(0, now->week, now);
+		tmp = _get_new_alarm(0, now->tm_wday, now);
 	}
 
 	if (tmp != NULL) {
-		when->tm_sec = tmp->second;
-		when->tm_min = tmp->minute;
-		when->tm_hour = tmp->hour;
-		if (when->tm_mday > tmp->week)
-			when->tm_mday = tmp->week + 1;
-		else
-			when->tm_mday = tmp->week;
+		now->tm_sec = tmp->second;
+		now->tm_min = tmp->minute;
+		now->tm_hour = tmp->hour;
 
-		printf("week: %d, hour: %d, minute: %d, second: %d\n",
-		tmp->week, tmp->hour, tmp->minute,
-		tmp->second);
-
+		if (now->tm_wday > tmp->week) {
+			now->tm_mday += tmp->week + 6 - now->tm_wday;
+		} else {
+			now->tm_mday += tmp->week - now->tm_wday;
+		}
+		
+		now->tm_wday = tmp->week;
+#if 0
+		printf("==>sec: %d, min: %d, hour: %d, mday: %d, mon: %d, year: %d, wday: %d, yday: %d, isdst: %d\n",
+			now->tm_sec,
+			now->tm_min,
+			now->tm_hour,
+			now->tm_mday,
+			now->tm_mon,
+			now->tm_year,
+			now->tm_wday,
+			now->tm_yday,
+			now->tm_isdst);
+#endif
 		time_t result;
-		result = mktime(when);
+		result = mktime(now);
 		if (result != -1) {
 			tmp->timestamp = result;
-			printf("timestamp: %ld\n", result);
 		}
 
 	}
@@ -279,30 +289,24 @@ int min(IN char in[7], OUT char out[7], char *num)
 	return x;
 }
 
-struct alarm *system_time_get(OUT struct tm *timenow)
+struct tm *system_time_get()
 {
 	time_t now;
 	time(&now);
-	timenow = localtime(&now);
+	struct tm *timenow = localtime(&now);
 	printf("Local   time   is   %s", asctime(timenow));
 	localtime_r(&now, timenow);
-#if 1
+#if 0
 	printf("year: %d, mon: %d, mday: %d, week: %d, hour: %d, min: %d, sec: %d\n",
 		timenow->tm_year, timenow->tm_mon, timenow->tm_mday, timenow->tm_wday,
 		timenow->tm_hour, timenow->tm_min, timenow->tm_sec);
 #endif 
-	struct alarm *tmp = malloc(sizeof(struct alarm));
-	tmp->week = timenow->tm_wday;
-	tmp->hour = timenow->tm_hour;
-	tmp->minute = timenow->tm_min;
-	tmp->second = timenow->tm_sec;
-	tmp->timestamp = now;
 	printf("second: %ld\n", now);
 
-	return tmp;
+	return timenow;
 }
 
-struct alarm *_get_new_alarm(int start, int end, struct alarm *now)
+struct alarm *_get_new_alarm(int start, int end, struct tm *now)
 {
 	struct fit figure[7] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}};
 	int i;
@@ -316,8 +320,8 @@ struct alarm *_get_new_alarm(int start, int end, struct alarm *now)
 
 			if (tick_tmp->enable & (1 << i)) {
 				figure[j].id = tick_tmp->id;
-				if (i == now->week) {
-					if ((now->hour == tick_tmp->hour) && (now->minute >= tick_tmp->minute))
+				if (i == now->tm_wday) {
+					if ((now->tm_hour == tick_tmp->hour) && (now->tm_min >= tick_tmp->minute))
 						continue;
 
 					figure[j].num = tick_tmp->hour;
@@ -329,7 +333,7 @@ struct alarm *_get_new_alarm(int start, int end, struct alarm *now)
 		}
 		char num;
 		char out[7] = {-1, -1, -1, -1, -1, -1, -1};
-		int id = compare(now->hour, figure, out, &num);
+		int id = compare(now->tm_hour, figure, out, &num);
 		if (id == MANY_CASES) {
 			struct fit _figure[7] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}};
 			struct alarm *tmp[num];
@@ -337,12 +341,12 @@ struct alarm *_get_new_alarm(int start, int end, struct alarm *now)
 			for (k = 0; k < num; k++) {
 				tmp[k] = alarm_search(out[k], i);
 				_figure[k].id = out[k];
-				if ((i != now->week) || (now->hour != tmp[k]->hour))
+				if ((i != now->tm_wday) || (now->tm_hour != tmp[k]->hour))
 					_figure[k].num = tmp[k]->minute + 60;
 				else 
 					_figure[k].num = tmp[k]->minute;
 			}
-			id = compare(now->minute, _figure, out, &num);
+			id = compare(now->tm_min, _figure, out, &num);
 			return alarm_search(id, i);
 
 		} else if (id == FAIL) {
@@ -377,12 +381,12 @@ int main()
 	if (ret == EXIST)
 		printf("alarm EXIST\n");
 
-	alarm_add(1, 0, 19, 1, 0, 1);
+	alarm_add(1, 1, 19, 1, 0, 1);
 	alarm_add(2, 0, 16, 9, 10, 1);
-	alarm_add(3, 6, 1, 1, 20, 1);
-	alarm_add(4, 6, 1, 1, 23, 1);
-	alarm_add(5, 3, 17, 5, 23, 1);
-	alarm_add(6, 0, 20, 3, 23, 1);
+	alarm_add(3, 0, 2, 1, 20, 1);
+	alarm_add(4, 0, 1, 2, 23, 1);
+	alarm_add(5, 6, 17, 5, 23, 1);
+	alarm_add(6, 5, 20, 3, 23, 1);
 
 	struct alarm *tick_tmp = get_new_alarm();
 	if (tick_tmp == NULL) {
@@ -390,9 +394,9 @@ int main()
 		return 0;
 	}
 
-	printf("search result ====> id: %d, week: %d, hour: %d, minute: %d, second: %d\n",
+	printf("search result ====> id: %d, week: %d, hour: %d, minute: %d, second: %d, timestamp: %ld\n",
 		tick_tmp->id, tick_tmp->week, tick_tmp->hour, tick_tmp->minute,
-		tick_tmp->second);
+		tick_tmp->second, tick_tmp->timestamp);
 
 	return 0;
 }
