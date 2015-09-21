@@ -10,7 +10,8 @@ enum {
 	SUCCESS = 0,
 	FAIL = -1,
 	MANY_CASES = 100,
-	EXIST
+	EXIST = 101,
+	ALL = 102
 };
 
 /*for search fit number*/
@@ -29,6 +30,9 @@ struct alarm {
 	U8 wflag;
 	/*for insert which queue*/
 	U8 week;
+
+	/*just for user*/
+	bool weekdays_active[7];
 	U8 hour;
 	U8 minute;
 	U8 second;

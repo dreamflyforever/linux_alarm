@@ -7,6 +7,18 @@
 
 struct alarm tick_queue[7];
 
+int weekdays_active_output(struct alarm *a)
+{
+	int i;
+	for (i = 0; i < 7; i++) {
+		if (a->rflag & (1 << i)) {
+			a->weekdays_active[i] = 1;
+		}
+	}
+
+	return SUCCESS;
+}
+
 int tick_queue_init(void)
 {
 	U8 i;
@@ -34,7 +46,7 @@ int tick_queue_delete(struct alarm *tick)
 /*XXX: no test*/
 U32 alarm_delete(U8 id)
 {
-	struct alarm *tmp = alarm_search(id, 0);
+	struct alarm *tmp = alarm_search(id, ALL);
 	if (tmp == NULL)
 		return SUCCESS;
 
@@ -45,48 +57,44 @@ U32 alarm_delete(U8 id)
 
 struct alarm *alarm_read(U8 id)
 {
-	return alarm_search(id, 100);
+	return alarm_search(id, ALL);
 }
 
 /*XXX: no test*/
 U32 alarm_set_repeat(U8 id, U8 week, U8 repeat)
 {
-	struct alarm *tmp = alarm_search(id, 100);
+	struct alarm *tmp = alarm_search(id, ALL);
 	if (tmp == NULL)
 		return FAIL;
-	
+
 	if (repeat) {
 		tmp->rflag |= (1 << week);
+		tmp->enable |= (1 << week);
+		tmp->week = week;
+		tick_queue_insert(tmp);
 	} else {
 		tmp->rflag &= (~(1 << week));
+		/*search the list, if alarm is no in the list, do nothing,else
+		  delete the alarm
+		  */
 	}
-		
-	tmp->enable |= (1 << week);
+
 	return 0;
 }
 
 U32 alarm_disable(U8 id)
 {
-	struct alarm *tmp = alarm_search(id, 100);
+	struct alarm *tmp = alarm_search(id, ALL);
 	if (tmp == NULL)
 		return FAIL;
 	tmp->enable = 0;
 	return SUCCESS;
 }
 
-U32 alarm_enable(U8 id)
-{
-	struct alarm *tmp = alarm_search(id, 100);
-	if (tmp == NULL)
-		return FAIL;
-	tmp->enable = 1;
-	return SUCCESS;
-}
-
 U32 alarm_reset(U8 id)
 {
 
-	struct alarm *tmp = alarm_search(id, 100);
+	struct alarm *tmp = alarm_search(id, ALL);
 	if (tmp == NULL)
 		return FAIL;
 	tmp->rflag = 0;
@@ -112,10 +120,15 @@ struct alarm *alarm_search(char id, char week)
 			tmp = tmp->next;
 
 			if (id == tick_tmp->id) {
-				tick_tmp->week = week;
-				if (!(tick_tmp->rflag & (1 << tick_tmp->week)))
-					tick_tmp->enable &=  (~(1 << tick_tmp->week));
-				return tick_tmp;
+				if (week == ALL)
+					return tick_tmp;
+
+				if (!(tick_tmp->rflag & (1 << week))) {
+					tick_tmp->week = week;
+					tick_tmp->enable &= (~(1 << tick_tmp->week));
+				} else {
+					return tick_tmp;
+				}
 			}
 		}
 	}
@@ -123,13 +136,7 @@ struct alarm *alarm_search(char id, char week)
 	return NULL;
 }
 
-U32
-alarm_add(U8 id,
-		U8 week,
-		U8 hour,
-		U8 minute,
-		U8 second,
-		bool repeat)
+U32 alarm_add(U8 id, U8 week, U8 hour, U8 minute, U8 second, bool repeat)
 {
 	if (!((id >=0) && (week >= 0) && (week < 7) &&
 		(hour >= 0) && (hour < 25) && (minute >= 0) &&
@@ -159,6 +166,7 @@ alarm_add(U8 id,
 
 	/*if alarm id not exist in the queue, then add it*/
 	struct alarm *node = (struct alarm *)malloc(sizeof(struct alarm));
+	memset(node, 0, sizeof(struct alarm));
 	node->id = id;
 	/*bitmap for which day*/
 	node->wflag |= (1 << week);
@@ -381,12 +389,12 @@ int main()
 	if (ret == EXIST)
 		printf("alarm EXIST\n");
 
-	alarm_add(1, 1, 19, 1, 0, 1);
-	alarm_add(2, 0, 16, 9, 10, 1);
-	alarm_add(3, 0, 2, 1, 20, 1);
-	alarm_add(4, 0, 1, 2, 23, 1);
-	alarm_add(5, 6, 17, 5, 23, 1);
-	alarm_add(6, 5, 20, 3, 23, 1);
+	alarm_add(1, 2, 10, 9, 0, 1);
+	alarm_add(2, 1, 12, 8, 10, 1);
+	alarm_add(3, 1, 11, 1, 20, 1);
+	alarm_add(4, 1, 11, 2, 23, 1);
+	alarm_add(5, 2, 0, 0, 0, 1);
+	alarm_add(6, 0, 20, 3, 23, 1);
 
 	struct alarm *tick_tmp = get_new_alarm();
 	if (tick_tmp == NULL) {
