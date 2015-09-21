@@ -23,10 +23,36 @@ int tick_queue_init(void)
 {
 	U8 i;
 	for (i = 0; i < 7; i++)
-        	list_init(&tick_queue[i].list);
+		list_init(&tick_queue[i].list);
 
 	return 0;
 
+}
+
+int tick_queue_clean()
+{
+	int i;
+	for (i = 0; i < 7; i++) {
+		struct alarm *tick_tmp;
+		LIST *tmp = &tick_queue[i].list;
+
+		while (!is_list_last(tmp)) {
+			tick_tmp = list_entry(tmp->next, struct alarm, list);
+			tmp = tmp->next;
+			if (tick_tmp != NULL) {
+#if 0
+				printf("id: %d, week: %d, hour: %d, minute: %d, second: %d\n",
+				tick_tmp->id, tick_tmp->week, tick_tmp->hour, tick_tmp->minute,
+				tick_tmp->second);
+#endif
+				free(tick_tmp);
+			} else {
+				printf("helloworld\n");
+			}
+		}
+	}
+	memset(tick_queue, 0, sizeof(struct alarm) * 7);
+	return 0;
 }
 
 int tick_queue_insert(struct alarm *tick)
@@ -147,6 +173,7 @@ U32 alarm_add(U8 id, U8 week, U8 hour, U8 minute, U8 second, bool repeat)
 	}
 
 	/*traverse the alarm list to search alarm id*/
+#if 0
 	int i;
 	for (i = 0; i < 7; i++) {
 		struct alarm *tick_tmp;
@@ -163,7 +190,7 @@ U32 alarm_add(U8 id, U8 week, U8 hour, U8 minute, U8 second, bool repeat)
 			}
 		}
 	}
-
+#endif
 	/*if alarm id not exist in the queue, then add it*/
 	struct alarm *node = (struct alarm *)malloc(sizeof(struct alarm));
 	memset(node, 0, sizeof(struct alarm));
@@ -187,9 +214,10 @@ U32 alarm_add(U8 id, U8 week, U8 hour, U8 minute, U8 second, bool repeat)
 	return SUCCESS;
 }
 
-struct alarm *get_new_alarm(void)
+struct alarm *get_new_alarm(struct tm *now, Alarm in_a[50], int size)
 {
-	struct tm *now = system_time_get();
+	tick_queue_init();
+	alarm_init(now, in_a, size);
 #if 0
 	printf("week: %d, hour: %d, minute: %d, second: %d\n",
 		now->tm_mday, now->tm_hour, now->tm_min,
@@ -233,7 +261,6 @@ struct alarm *get_new_alarm(void)
 		}
 
 	}
-
 	return tmp;
 }
 
@@ -381,22 +408,45 @@ void print(U8 week_queue)
 	printf("\n");
 }
 
+Alarm in_array[4] = {
+		[0] = {1, 1, {1, 0, 0, 0, 0, 0, 0}, 1, 0, 0, 0,},
+		[1] = {2, 1, {0, 0, 0, 0, 0, 0, 0}, 1, 0, 1, 0,},
+		[2] = {19, 1, {0, 0, 1, 0, 0, 1, 1}, 1, 0, 1, 0,},
+		[3] = {2, 1, {1, 1, 1, 1, 1, 1, 1}, 1, 0, 1, 0,},
+};
+
+int alarm_init(struct tm *now, Alarm array[50], int size)
+{
+	struct alarm a[50];
+	memset(a, 0, 50);
+	if (size > 50) {
+		printf("size > 50, reset the input alarm\n");
+		return FAIL;
+	}
+
+	int i;
+	int j;
+	for (i = 0 ; i < size; i++) {
+		a[i].hour = (char)array[i].hour;
+		a[i].minute = (char)array[i].minute;
+		a[i].id = (char)array[i].alarm_id;
+
+		for (j = 0; j < 7; j++) {
+			if (array[i].weekdays_active[j]) {
+				a[i].week = j;
+				alarm_add(i, a[i].week, a[i].hour, a[i].minute, 0, 1);
+			}
+		}
+	}
+	return SUCCESS;
+}
+
 int main()
 {
-	int ret;
-	tick_queue_init();
-	ret = alarm_add(0, 5, 3, 6, 1, 1);
-	if (ret == EXIST)
-		printf("alarm EXIST\n");
+	
+	struct tm *now = system_time_get();
 
-	alarm_add(1, 2, 10, 9, 0, 1);
-	alarm_add(2, 1, 12, 8, 10, 1);
-	alarm_add(3, 1, 11, 1, 20, 1);
-	alarm_add(4, 1, 11, 2, 23, 1);
-	alarm_add(5, 2, 0, 0, 0, 1);
-	alarm_add(6, 0, 20, 3, 23, 1);
-
-	struct alarm *tick_tmp = get_new_alarm();
+	struct alarm *tick_tmp = get_new_alarm(now, in_array, sizeof(in_array)/sizeof(Alarm));
 	if (tick_tmp == NULL) {
 		printf("no alarm get\n");
 		return 0;
@@ -406,5 +456,6 @@ int main()
 		tick_tmp->id, tick_tmp->week, tick_tmp->hour, tick_tmp->minute,
 		tick_tmp->second, tick_tmp->timestamp);
 
+	tick_queue_clean();
 	return 0;
 }

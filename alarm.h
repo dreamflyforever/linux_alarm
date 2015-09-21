@@ -20,6 +20,18 @@ struct fit {
 	char num;
 };
 
+typedef struct Alarm{
+	int hour;
+	int minute;
+	int weekdays_active[7];
+	int enabled;
+	time_t timestamp; 
+	int alarm_id;
+	int volume;
+	char programData[256];
+	char programUrl[128];
+} Alarm;
+
 /*alarm context*/
 struct alarm {
 	struct LIST list;
@@ -50,7 +62,7 @@ U32 alarm_disable(U8 id);
 U32 alarm_enable(U8);
 
 /*return latest alarm to user*/
-struct alarm *get_new_alarm(void);
+struct alarm *get_new_alarm(struct tm *now, Alarm a[50], int size);
 
 /*system lib*/
 struct tm *system_time_get(void);
@@ -59,5 +71,5 @@ int compare(char c, struct fit in[7], OUT char fout[7], OUT char *num);
 int min(IN char in[7], OUT char out[7], char *num);
 struct alarm *_get_new_alarm(int start, int end, struct tm *now);
 void print(U8 week_queue);
-
+int alarm_init(struct tm *now, Alarm array[50], int size);
 #endif
