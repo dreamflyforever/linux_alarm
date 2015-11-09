@@ -7,18 +7,6 @@
 
 struct alarm tick_queue[7];
 
-int weekdays_active_output(struct alarm *a)
-{
-	int i;
-	for (i = 0; i < 7; i++) {
-		if (a->rflag & (1 << i)) {
-			a->weekdays_active[i] = 1;
-		}
-	}
-
-	return SUCCESS;
-}
-
 int tick_queue_init(void)
 {
 	U8 i;
@@ -108,32 +96,6 @@ U32 alarm_set_repeat(U8 id, U8 week, U8 repeat)
 	return 0;
 }
 
-U32 alarm_disable(U8 id)
-{
-	struct alarm *tmp = alarm_search(id, ALL);
-	if (tmp == NULL)
-		return FAIL;
-	tmp->enable = 0;
-	return SUCCESS;
-}
-
-U32 alarm_reset(U8 id)
-{
-
-	struct alarm *tmp = alarm_search(id, ALL);
-	if (tmp == NULL)
-		return FAIL;
-	tmp->rflag = 0;
-	tmp->wflag = 0;
-	tmp->hour = 0;
-	tmp->minute = 0;
-	tmp->second = 0;
-	tmp->enable = 0;
-	tmp->week = 0;
-	
-	return SUCCESS;
-}
-
 /*traverse the alarm list to search alarm id*/
 struct alarm *alarm_search(char id, char week)
 {
@@ -206,10 +168,11 @@ U32 alarm_add(U8 id, U8 week, U8 hour, U8 minute, U8 second, bool repeat)
 	if (repeat) {
 		node->rflag |= (1 << week);
 	}
+#if 1
 	printf("id: %d, week: %d, hour: %d, minute: %d, second: %d\n",
 		node->id, node->week, node->hour, node->minute,
 		node->second);
-
+#endif
 	tick_queue_insert(node);
 	return SUCCESS;
 }
@@ -331,11 +294,16 @@ struct tm *system_time_get()
 	struct tm *timenow = localtime(&now);
 	printf("Local   time   is   %s", asctime(timenow));
 	localtime_r(&now, timenow);
-#if 0
+	 //week: 5, hour: 10, min: 57, sec: 59
+	timenow->tm_wday = 5;
+	timenow->tm_hour = 10;
+	timenow->tm_min = 57;
+	timenow->tm_sec = 59;
+#if 1
 	printf("year: %d, mon: %d, mday: %d, week: %d, hour: %d, min: %d, sec: %d\n",
 		timenow->tm_year, timenow->tm_mon, timenow->tm_mday, timenow->tm_wday,
 		timenow->tm_hour, timenow->tm_min, timenow->tm_sec);
-#endif 
+#endif
 	printf("second: %ld\n", now);
 
 	return timenow;
@@ -387,7 +355,7 @@ struct alarm *_get_new_alarm(int start, int end, struct tm *now)
 		} else if (id == FAIL) {
 
 		} else {
-			printf("===============>id: %d <================\n", id);
+			//printf("===============>id: %d <================\n", id);
 			return alarm_search(id, i);
 		}
 	}
@@ -408,12 +376,21 @@ void print(U8 week_queue)
 	printf("\n");
 }
 
+#if 0
 Alarm in_array[4] = {
 		[0] = {1, 1, {1, 0, 0, 0, 0, 0, 0}, 1, 0, 0, 0,},
 		[1] = {2, 1, {0, 0, 0, 0, 0, 0, 0}, 1, 0, 1, 0,},
 		[2] = {19, 1, {0, 0, 1, 0, 0, 1, 1}, 1, 0, 1, 0,},
 		[3] = {2, 1, {1, 1, 1, 1, 1, 1, 1}, 1, 0, 1, 0,},
 };
+#endif
+Alarm in_array[5] = {
+	[0] = {10, 51,{1,1,1,1,1,1,1},1,12,13 },
+	[1] = {10, 55,{1,1,1,1,1,1,1},0,22,23 },
+	[2] = {10, 59,{1,1,1,1,1,1,1},2,32,33 },
+	[3] = {11, 05,{1,1,1,1,1,1,1},0,42,43 },
+	[4] = {11, 10,{1,1,1,1,1,1,1},2,52,53} 
+};   
 
 int alarm_init(struct tm *now, Alarm array[50], int size)
 {
